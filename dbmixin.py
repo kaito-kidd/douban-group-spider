@@ -14,11 +14,11 @@ class DBMixin(object):
     _client = None
 
     @property
-    def client():
+    def client(self):
         if not self._client:
             self._client = MongoClient(DB_URI)
         return self._client
 
     @property
-    def db():
+    def db(self):
         return self.client[DB_NAME]
