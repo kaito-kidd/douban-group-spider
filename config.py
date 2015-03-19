@@ -10,6 +10,10 @@ UA = (
     "Chrome/40.0.2214.93 Safari/537.36"
 )
 
+# mongo config
+DB_URI = "mongodb://127.0.0.1:27017"
+DB_NAME = "douban_group"
+
 # 豆瓣小组URL
 GROUP_LIST = [
 
