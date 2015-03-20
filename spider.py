@@ -4,11 +4,16 @@
 爬虫
 """
 
+import gevent
+gevent.patch_all()
+
 import requests
+
+from gevent import Pool
 from lxml import etree
 from dbmixin import DBMixin
 
-from config import USER_AGENT
+from config import USER_AGENT, POOL_SIZE
 
 
 class HTTPError(Exception):
@@ -38,6 +43,7 @@ class DoubanSpider(DBMixin):
         self.result = self.db.result_douban
         self.cache = self.db.cache_douban
         self.session = requests.Session()
+        self.pool = Pool(size=POOL_SIZE)
 
     def fetch(self, url, timeout=10, retury_num=3):
         """发起HTTP请求
