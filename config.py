@@ -43,10 +43,27 @@ GROUP_LIST = [
 ]
 
 # 后缀
-SUFFIX = "discussion?start=%d"
+GROUP_SUFFIX = "discussion?start=%d"
 
 # 抓取前多少页
 MAX_PAGE = 10
+
+# 匹配规则
+RULES = {
+    # 每个帖子项
+    "topic_item": "//table[@class='olt']/tr",
+    # 列表元素
+    "title": "td[@class='title']/span/a/@title",
+    "author": "td[@nowrap='nowrap'][1]/a/text()",
+    "reply": "td[@nowrap='nowrap'][2]/a/text()",
+    "last_reply_time": "td[@class='time']/text()",
+    "url": "td[@class='title']/span/a/@href",
+    # 帖子详情
+    "detail_title": "//td[@class='tablecc']/text()|//div[@id='content']/h1/text()",
+    "create_time": "//span[@class='color-green']/text()",
+    "detail_author": "//span[@class='from']/a/text()",
+    "content": "//div[@class='topic-content']/p/text()",
+}
 
 # 并发数
 POOL_SIZE = 3
