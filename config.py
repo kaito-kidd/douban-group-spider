@@ -52,12 +52,13 @@ MAX_PAGE = 10
 RULES = {
     # 每个帖子项
     "topic_item": "//table[@class='olt']/tr",
+    "url_list": "//table[@class='olt']/tr/td[@class='title']/a/@href",
     # 列表元素
     "title": "td[@class='title']/span/a/@title",
     "author": "td[@nowrap='nowrap'][1]/a/text()",
     "reply": "td[@nowrap='nowrap'][2]/a/text()",
     "last_reply_time": "td[@class='time']/text()",
-    "url": "td[@class='title']/span/a/@href",
+    "url": "td[@class='title']/a/@href",
     # 帖子详情
     "detail_title": "//td[@class='tablecc']/text()|//div[@id='content']/h1/text()",
     "create_time": "//span[@class='color-green']/text()",
