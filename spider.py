@@ -4,13 +4,15 @@
 爬虫
 """
 
-import gevent
-gevent.patch_all()
+from gevent import monkey
+monkey.patch_all()
 
 import time
+import logging
 
+import gevent
 import requests
-from gevent import Pool
+from gevent.pool import Pool
 from gevent.queue import Queue
 from lxml import etree
 from dbmixin import DBMixin
@@ -29,7 +31,7 @@ class HTTPError(Exception):
         self.url = url
 
     def __str__(self):
-        return "%s HTTP %s" % (self.self.url, self.status_code)
+        return "%s HTTP %s" % (self.url, self.status_code)
 
 
 class URLFetchError(Exception):
@@ -68,7 +70,10 @@ class DoubanSpider(DBMixin):
         @retury_num, int, 重试次数
         """
         kwargs = {
-            "headers": {"User-Agent" : USER_AGENT},
+            "headers": {
+                "User-Agent" : USER_AGENT,
+                # "Referer": "http://www.douban.com/"
+            },
         }
         kwargs["timeout"] = timeout
         resp = None
@@ -76,10 +81,11 @@ class DoubanSpider(DBMixin):
             try:
                 resp = self.session.get(url, **kwargs)
                 if resp.status_code != 200:
-                    raise HTTPError(resp.status_code)
+                    raise HTTPError(resp.status_code, url)
                 break
             except Exception as exc:
-                logging.warn("%s %d failed!\n%s", url, i, str(exc))
+                logging.warn("%s %d failed!\n%s",
+                    url, i, str(exc), exc_info=True)
                 continue
         if resp is None:
             raise URLFetchError(url)
@@ -102,27 +108,26 @@ class DoubanSpider(DBMixin):
     def run(self):
         """run
         """
+        all_greenlet = []
         # 定时爬取
-        timer = Timer(5, self.interval)
-        timer.run(self._init)
-        # 生产 & 消费
-        self.pool.spawn(self._page_loop)
-        self.pool.spawn(self._topic_loop)
-
-    def _init(self):
-        """初始化
-        """
         for group_url in self.group_list:
-            self._init_page_tasks(group_url)
+            timer = Timer(2, self.interval)
+            greenlet = gevent.spawn(
+                timer.run, self._init_page_tasks, group_url)
+            all_greenlet.append(greenlet)
+        # 生产 & 消费
+        all_greenlet.append(gevent.spawn(self._page_loop))
+        all_greenlet.append(gevent.spawn(self._topic_loop))
+        gevent.joinall(all_greenlet)
 
     def _init_page_tasks(self, group_url):
         """初始化页面任务
 
         @group_url, str, 小组URL
         """
-        for page in range(1, MAX_PAGE + 1):
+        for page in range(MAX_PAGE):
             base_url = "%s%s" % (group_url, GROUP_SUFFIX)
-            url = base_url % page
+            url = base_url % (page * 25)
             self.page_queue.put(url)
 
     def _page_loop(self):
@@ -130,27 +135,30 @@ class DoubanSpider(DBMixin):
         """
         while 1:
             page_url = self.page_queue.get(block=True)
-            self._crawl_page(page_url)
+            self.pool.spawn(self._crawl_page, page_url)
 
     def _topic_loop(self):
         """topic loop
         """
         while 1:
             topic_url = self.topic_queue.get(block=True)
-            self._crawl_detail(topic_url)
+            self.pool.spawn(self._crawl_detail, topic_url)
 
-    def _crawl_page(url):
+    def _crawl_page(self, url):
         """爬取帖子
 
         @url, str, 当前页面URL
         """
+        print("processing page: %s" % url)
         html = self.fetch(url)
         topic_urls = self.extract(
             self.rules["url_list"], html, multi=True)
         # 找出新增的帖子URL
         diff_urls = self._diff_urls(topic_urls)
         if not diff_urls:
+            print("%s no update ..." % url)
             return
+        print("%s new add : %d" % (url, len(diff_urls)))
         topic_list = self.extract(
             self.rules["topic_item"], html, multi=True)
         # 获取每一页的信息
@@ -170,11 +178,12 @@ class DoubanSpider(DBMixin):
         @topic_list, list, 当前月的帖子项
         """
         topics = []
-        for topic_item in topic_list:
+        # 第一行是标题头,舍掉
+        for topic_item in topic_list[1:]:
             topic = {}
             topic["title"] = self.extract(self.rules["title"], topic_item)
             topic["author"] = self.extract(self.rules["author"], topic_item)
-            topic["reply"] = self.extract(self.rules["reply"], topic_item)
+            topic["reply"] = self.extract(self.rules["reply"], topic_item) or 0
             topic["last_reply_time"] = self.extract(
                 self.rules["last_reply_time"], topic_item)
             topic["url"]  = self.extract(self.rules["url"], topic_item)
@@ -182,7 +191,7 @@ class DoubanSpider(DBMixin):
             topics.append(topic)
         return topics
 
-    def _filter_topics(topics, diff_urls):
+    def _filter_topics(self, topics, diff_urls):
         """过滤重复帖子
 
         @topics, list, 当前页所有帖子信息
@@ -200,11 +209,11 @@ class DoubanSpider(DBMixin):
         """
         # 与缓存比较
         cache_urls = []
-        cursor = self.cache_page.find()
+        cursor = self.cache.find()
         for item in cursor:
             cache_urls.extend(item["urls"])
         # 找出新增的URL
-        diff_urls = set(cache_urls) - set(topic_urls)
+        diff_urls = list(set(topic_urls) - set(cache_urls))
         return diff_urls
 
     def _init_topic_tasks(self, topic_urls):
@@ -220,46 +229,46 @@ class DoubanSpider(DBMixin):
 
         @diff_urls, list, 新增的帖子URL
         """
-        self.cache_page.insert(
+        self.cache.insert(
             {"got_time": time.time(), "urls": diff_urls})
 
-    def _crawl_detail(url):
+    def _crawl_detail(self, url):
         """爬取每个帖子的详情
 
         @url, str, 每个帖子的URL
         """
+        print("processing topic: %s" % url)
+        html = self.fetch(url)
         html = self.fetch(url)
         # 获取每一页的信息
-        topic = self._get_detail_info(html)
+        topic = self._get_detail_info(html, url)
+        topic["url"] = url
         # 保存每页的信息
         self.result_topic.insert(topic)
 
-    def _get_detail_info(self, html):
+    def _get_detail_info(self, html, url):
         """获取帖子详情
 
         @html, str, 页面
         """
         topic = {}
-        topic["title"] = self.extract(
-            self.rules["detail_title"], html).strip()
+        title = self.extract(
+            self.rules["detail_title"], html)
+        topic["title"] = title.strip()
         topic["create_time"] = self.extract(
             self.rules["create_time"], html)
         topic["author"] = self.extract(
-            self.rules["author"], html)
+            self.rules["detail_author"], html)
         topic["content"] = '\n'.join(
             self.extract(self.rules["content"], html, multi=True))
         return topic
 
 
-def test():
+def main():
     """ main """
     spider = DoubanSpider()
-    url = "http://www.douban.com/group/26926/"
-    resp = spider.fetch(url)
-    regx = "//table[@class='olt']/tr/td[@class='title']/a/@href"
-    urls = spider.extract(regx, resp, multi=True)
-    print urls
+    spider.run()
 
 
 if __name__ == "__main__":
-    test()
+    main()
