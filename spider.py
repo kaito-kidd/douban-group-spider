@@ -8,6 +8,7 @@ from gevent import monkey
 monkey.patch_all()
 
 import time
+import random
 import logging
 
 import gevent
@@ -21,7 +22,7 @@ from config import (
     GROUP_LIST, GROUP_SUFFIX, USER_AGENT,
     POOL_SIZE, RULES, MAX_PAGE, WATCH_INTERVAL
 )
-from utils import Timer
+from utils import Timer, ProxyManager
 
 
 class HTTPError(Exception):
@@ -47,7 +48,7 @@ class DoubanSpider(DBMixin):
 
     """" 豆瓣爬虫 """
 
-    def __init__(self):
+    def __init__(self, proxy_manager=None):
         self.result_page = self.db.result_page
         self.result_topic = self.db.result_topic
         self.cache = self.db.cache_page
@@ -61,6 +62,8 @@ class DoubanSpider(DBMixin):
         self.page_queue = Queue()
         self.topic_queue = Queue()
 
+        self.proxy_manager = proxy_manager
+
     def fetch(self, url, timeout=10, retury_num=3):
         """发起HTTP请求
 
@@ -71,13 +74,16 @@ class DoubanSpider(DBMixin):
         kwargs = {
             "headers": {
                 "User-Agent": USER_AGENT,
-                # "Referer": "http://www.douban.com/"
+                "Referer": "http://www.douban.com/"
             },
         }
         kwargs["timeout"] = timeout
         resp = None
         for i in range(retury_num):
             try:
+                # 是否启动代理
+                if self.proxy_manager is not None:
+                    kwargs["proxies"] = {"http": self.proxy_manager.get_proxy()}
                 resp = self.session.get(url, **kwargs)
                 if resp.status_code != 200:
                     raise HTTPError(resp.status_code, url)
@@ -110,7 +116,7 @@ class DoubanSpider(DBMixin):
         all_greenlet = []
         # 定时爬取
         for group_url in self.group_list:
-            timer = Timer(2, self.interval)
+            timer = Timer(random.randint(1, 5), self.interval)
             greenlet = gevent.spawn(
                 timer.run, self._init_page_tasks, group_url)
             all_greenlet.append(greenlet)
@@ -148,16 +154,16 @@ class DoubanSpider(DBMixin):
 
         @url, str, 当前页面URL
         """
-        print("processing page: %s" % url)
+        logging.info("processing page: %s" % url)
         html = self.fetch(url)
         topic_urls = self.extract(
             self.rules["url_list"], html, multi=True)
         # 找出新增的帖子URL
         diff_urls = self._diff_urls(topic_urls)
         if not diff_urls:
-            print("%s no update ..." % url)
+            logging.info("%s no update ..." % url)
             return
-        print("%s new add : %d" % (url, len(diff_urls)))
+        logging.info("%s new add : %d" % (url, len(diff_urls)))
         topic_list = self.extract(
             self.rules["topic_item"], html, multi=True)
         # 获取每一页的信息
@@ -236,11 +242,12 @@ class DoubanSpider(DBMixin):
 
         @url, str, 每个帖子的URL
         """
-        print("processing topic: %s" % url)
+        logging.info("processing topic: %s" % url)
         html = self.fetch(url)
         # 获取每一页的信息
         topic = self._get_detail_info(html, url)
         topic["url"] = url
+        topic["got_time"] = time.time()
         # 保存每页的信息
         self.result_topic.insert(topic)
 
@@ -264,7 +271,11 @@ class DoubanSpider(DBMixin):
 
 def main():
     """ main """
-    spider = DoubanSpider()
+    logging.basicConfig(
+        format="[%(levelname)s %(asctime)s-%(message)s]",
+        level=logging.INFO)
+    proxy_manager = ProxyManager("./proxy_list.txt", 30)
+    spider = DoubanSpider(proxy_manager)
     spider.run()
 
 

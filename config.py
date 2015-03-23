@@ -33,7 +33,7 @@ GROUP_LIST = [
     # 北漂爱合租
     "http://www.douban.com/group/aihezu/",
     # 北京租房
-    "http://www.douban.com/group/370806/"
+    "http://www.douban.com/group/370806/",
     # 北京同志们来租房
     "http://www.douban.com/group/325060/",
     # 北京个人租房
@@ -67,7 +67,7 @@ RULES = {
 }
 
 # 并发数
-POOL_SIZE = 3
+POOL_SIZE = 10
 
 # 监控周期(秒),默认5分钟
-WATCH_INTERVAL = 5 * 60
+WATCH_INTERVAL = 10 * 60
