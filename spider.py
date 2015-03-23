@@ -61,7 +61,6 @@ class DoubanSpider(DBMixin):
         self.page_queue = Queue()
         self.topic_queue = Queue()
 
-
     def fetch(self, url, timeout=10, retury_num=3):
         """发起HTTP请求
 
@@ -71,7 +70,7 @@ class DoubanSpider(DBMixin):
         """
         kwargs = {
             "headers": {
-                "User-Agent" : USER_AGENT,
+                "User-Agent": USER_AGENT,
                 # "Referer": "http://www.douban.com/"
             },
         }
@@ -85,7 +84,7 @@ class DoubanSpider(DBMixin):
                 break
             except Exception as exc:
                 logging.warn("%s %d failed!\n%s",
-                    url, i, str(exc), exc_info=True)
+                             url, i, str(exc), exc_info=True)
                 continue
         if resp is None:
             raise URLFetchError(url)
@@ -186,7 +185,7 @@ class DoubanSpider(DBMixin):
             topic["reply"] = self.extract(self.rules["reply"], topic_item) or 0
             topic["last_reply_time"] = self.extract(
                 self.rules["last_reply_time"], topic_item)
-            topic["url"]  = self.extract(self.rules["url"], topic_item)
+            topic["url"] = self.extract(self.rules["url"], topic_item)
             topic["got_time"] = time.time()
             topics.append(topic)
         return topics
@@ -238,7 +237,6 @@ class DoubanSpider(DBMixin):
         @url, str, 每个帖子的URL
         """
         print("processing topic: %s" % url)
-        html = self.fetch(url)
         html = self.fetch(url)
         # 获取每一页的信息
         topic = self._get_detail_info(html, url)
