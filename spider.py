@@ -257,6 +257,9 @@ class DoubanSpider(DBMixin):
         html = self.fetch(url)
         # 获取每一页的信息
         topic = self._get_detail_info(html, url)
+        if not topic:
+            self.topic_queue.put(url)
+            return
         topic["url"] = url
         topic["got_time"] = time.time()
         # 保存每页的信息
@@ -267,6 +270,9 @@ class DoubanSpider(DBMixin):
 
         @html, str, 页面
         """
+        if u"机器人" in html:
+            logging.warn("%s 403.html", url)
+            return None
         topic = {}
         title = self.extract(
             self.rules["detail_title"], html)
