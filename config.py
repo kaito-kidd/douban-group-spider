@@ -24,16 +24,12 @@ GROUP_LIST = [
     "http://www.douban.com/group/257523/",
     # 北京租房
     "http://www.douban.com/group/beijingzufang/",
-    # 通州租房
-    "http://www.douban.com/group/369658/",
     # 北京租房小组
     "http://www.douban.com/group/xiaotanzi/",
     # 北京无中介租房
     "http://www.douban.com/group/zhufang/",
     # 北漂爱合租
     "http://www.douban.com/group/aihezu/",
-    # 北京租房
-    "http://www.douban.com/group/370806/",
     # 北京同志们来租房
     "http://www.douban.com/group/325060/",
     # 北京个人租房
@@ -69,5 +65,5 @@ RULES = {
 # 并发数
 POOL_SIZE = 10
 
-# 监控周期(秒),默认5分钟
-WATCH_INTERVAL = 10 * 60
+# 监控周期(秒),默认20分钟
+WATCH_INTERVAL = 20 * 60

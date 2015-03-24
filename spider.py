@@ -64,7 +64,7 @@ class DoubanSpider(DBMixin):
 
         self.proxy_manager = proxy_manager
 
-    def fetch(self, url, timeout=10, retury_num=3):
+    def fetch(self, url, timeout=10, retury_num=10):
         """发起HTTP请求
 
         @url, str, URL
@@ -89,8 +89,8 @@ class DoubanSpider(DBMixin):
                     raise HTTPError(resp.status_code, url)
                 break
             except Exception as exc:
-                logging.warn("%s %d failed!\n%s",
-                             url, i, str(exc), exc_info=True)
+                logging.warn("%s %d failed!\n%s", url, i, str(exc))
+                time.sleep(2)
                 continue
         if resp is None:
             raise URLFetchError(url)
@@ -116,14 +116,24 @@ class DoubanSpider(DBMixin):
         all_greenlet = []
         # 定时爬取
         for group_url in self.group_list:
-            timer = Timer(random.randint(1, 5), self.interval)
+            # timer = Timer(random.randint(0, self.interval), self.interval)
+            timer = Timer(random.randint(0, 2), self.interval)
             greenlet = gevent.spawn(
                 timer.run, self._init_page_tasks, group_url)
             all_greenlet.append(greenlet)
         # 生产 & 消费
         all_greenlet.append(gevent.spawn(self._page_loop))
         all_greenlet.append(gevent.spawn(self._topic_loop))
+        # 重载代理
+        proxy_timer = Timer(600, 600)
+        all_greenlet.append(
+            gevent.spawn(proxy_timer.run(self.reload_proxies)))
         gevent.joinall(all_greenlet)
+
+    def reload_proxies(self):
+        """重新加载代理
+        """
+        self.proxy_manager.reload_proxies()
 
     def _init_page_tasks(self, group_url):
         """初始化页面任务
@@ -140,6 +150,7 @@ class DoubanSpider(DBMixin):
         """
         while 1:
             page_url = self.page_queue.get(block=True)
+            gevent.sleep(1)
             self.pool.spawn(self._crawl_page, page_url)
 
     def _topic_loop(self):
