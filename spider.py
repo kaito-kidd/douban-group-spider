@@ -84,7 +84,8 @@ class DoubanSpider(DBMixin):
                 # 是否启动代理
                 if self.proxy_manager is not None:
                     kwargs["proxies"] = {"http": self.proxy_manager.get_proxy()}
-                resp = self.session.get(url, **kwargs)
+                # resp = self.session.get(url, **kwargs)
+                resp = requests.get(url, **kwargs)
                 if resp.status_code != 200:
                     raise HTTPError(resp.status_code, url)
                 break
@@ -262,7 +263,9 @@ class DoubanSpider(DBMixin):
             return
         topic["url"] = url
         topic["got_time"] = time.time()
-        # 保存每页的信息
+        # 不存在 & 保存帖子的信息
+        if self.result_topic.find_one({"url": url}):
+            return
         self.result_topic.insert(topic)
 
     def _get_detail_info(self, html, url):

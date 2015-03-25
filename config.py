@@ -63,7 +63,7 @@ RULES = {
 }
 
 # 并发数
-POOL_SIZE = 10
+POOL_SIZE = 20
 
 # 监控周期(秒),默认20分钟
 WATCH_INTERVAL = 20 * 60
