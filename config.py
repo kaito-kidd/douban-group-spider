@@ -42,7 +42,7 @@ GROUP_LIST = [
 GROUP_SUFFIX = "discussion?start=%d"
 
 # 抓取前多少页
-MAX_PAGE = 10
+MAX_PAGE = 2
 
 # 匹配规则
 RULES = {
@@ -65,5 +65,5 @@ RULES = {
 # 并发数
 POOL_SIZE = 20
 
-# 监控周期(秒),默认20分钟
-WATCH_INTERVAL = 20 * 60
+# 监控周期(秒),默认10分钟
+WATCH_INTERVAL = 10 * 60

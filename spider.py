@@ -1,7 +1,7 @@
 # coding: utf8
 
 """
-爬虫
+豆瓣小组爬虫
 """
 
 from gevent import monkey
@@ -25,7 +25,25 @@ from config import (
 from utils import Timer, ProxyManager
 
 
+def get_logger(name):
+    """logger
+    """
+    default_logger = logging.getLogger(name)
+    default_logger.setLevel(logging.DEBUG)
+    stream = logging.StreamHandler()
+    stream.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s")
+    stream.setFormatter(formatter)
+    default_logger.addHandler(stream)
+    return default_logger
+
+
+logger = get_logger(__name__)
+
+
 class HTTPError(Exception):
+
+    """ HTTP状态码不是200异常 """
 
     def __init__(self, status_code, url):
         self.status_code = status_code
@@ -36,6 +54,8 @@ class HTTPError(Exception):
 
 
 class URLFetchError(Exception):
+
+    """ HTTP请求结果为空异常 """
 
     def __init__(self, url):
         self.url = url
@@ -83,14 +103,15 @@ class DoubanSpider(DBMixin):
             try:
                 # 是否启动代理
                 if self.proxy_manager is not None:
-                    kwargs["proxies"] = {"http": self.proxy_manager.get_proxy()}
+                    kwargs["proxies"] = {
+                        "http": self.proxy_manager.get_proxy()}
                 # resp = self.session.get(url, **kwargs)
                 resp = requests.get(url, **kwargs)
                 if resp.status_code != 200:
                     raise HTTPError(resp.status_code, url)
                 break
             except Exception as exc:
-                logging.warn("%s %d failed!\n%s", url, i, str(exc))
+                logger.warn("%s %d failed!\n%s", url, i, str(exc))
                 time.sleep(2)
                 continue
         if resp is None:
@@ -125,8 +146,8 @@ class DoubanSpider(DBMixin):
         # 生产 & 消费
         all_greenlet.append(gevent.spawn(self._page_loop))
         all_greenlet.append(gevent.spawn(self._topic_loop))
-        # 重载代理
-        proxy_timer = Timer(600, 600)
+        # 重载代理,10分
+        proxy_timer = Timer(10 * 60, 10 * 60)
         all_greenlet.append(
             gevent.spawn(proxy_timer.run(self.reload_proxies)))
         gevent.joinall(all_greenlet)
@@ -166,16 +187,16 @@ class DoubanSpider(DBMixin):
 
         @url, str, 当前页面URL
         """
-        logging.info("processing page: %s" % url)
+        logger.info("processing page: %s" % url)
         html = self.fetch(url)
         topic_urls = self.extract(
             self.rules["url_list"], html, multi=True)
         # 找出新增的帖子URL
         diff_urls = self._diff_urls(topic_urls)
         if not diff_urls:
-            logging.info("%s no update ..." % url)
+            logger.info("%s no update ..." % url)
             return
-        logging.info("%s new add : %d" % (url, len(diff_urls)))
+        logger.info("%s new add : %d" % (url, len(diff_urls)))
         topic_list = self.extract(
             self.rules["topic_item"], html, multi=True)
         # 获取每一页的信息
@@ -254,7 +275,7 @@ class DoubanSpider(DBMixin):
 
         @url, str, 每个帖子的URL
         """
-        logging.info("processing topic: %s" % url)
+        logger.info("processing topic: %s" % url)
         html = self.fetch(url)
         # 获取每一页的信息
         topic = self._get_detail_info(html, url)
@@ -274,7 +295,7 @@ class DoubanSpider(DBMixin):
         @html, str, 页面
         """
         if u"机器人" in html:
-            logging.warn("%s 403.html", url)
+            logger.warn("%s 403.html", url)
             return None
         topic = {}
         title = self.extract(
@@ -291,9 +312,6 @@ class DoubanSpider(DBMixin):
 
 def main():
     """ main """
-    logging.basicConfig(
-        format="[%(levelname)s %(asctime)s-%(message)s]",
-        level=logging.INFO)
     proxy_manager = ProxyManager("./proxy_list.txt", 30)
     spider = DoubanSpider(proxy_manager)
     spider.run()
