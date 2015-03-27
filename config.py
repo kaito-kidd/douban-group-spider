@@ -42,7 +42,7 @@ GROUP_LIST = [
 GROUP_SUFFIX = "discussion?start=%d"
 
 # 抓取前多少页
-MAX_PAGE = 2
+MAX_PAGE = 5
 
 # 匹配规则
 RULES = {

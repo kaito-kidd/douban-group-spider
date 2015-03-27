@@ -38,7 +38,7 @@ def get_logger(name):
     return default_logger
 
 
-logger = get_logger(__name__)
+logger = get_logger("douban_spider")
 
 
 class HTTPError(Exception):
@@ -187,24 +187,26 @@ class DoubanSpider(DBMixin):
 
         @url, str, 当前页面URL
         """
-        logger.info("processing page: %s" % url)
+        logger.info("processing page: %s", url)
         html = self.fetch(url)
         topic_urls = self.extract(
             self.rules["url_list"], html, multi=True)
         # 找出新增的帖子URL
         diff_urls = self._diff_urls(topic_urls)
         if not diff_urls:
-            logger.info("%s no update ..." % url)
+            logger.info("%s no update ...", url)
             return
-        logger.info("%s new add : %d" % (url, len(diff_urls)))
+        logger.info("%s new add : %d", url, len(diff_urls))
         topic_list = self.extract(
             self.rules["topic_item"], html, multi=True)
         # 获取每一页的信息
         topics = self._get_page_info(topic_list)
-        # 过滤重复
-        topics = self._filter_topics(topics, diff_urls)
+        # 过滤,找到新增的和之前的帖子
+        new_topics, old_topics = self._filter_topics(topics, diff_urls)
         # 保存每页的信息
-        self.result_page.insert(topics)
+        self.result_page.insert(new_topics)
+        # 更新老帖子的时间和回复数
+        self._update_old_topics(old_topics)
         # 初始化帖子任务
         self._init_topic_tasks(diff_urls)
         # 更新缓存
@@ -225,20 +227,26 @@ class DoubanSpider(DBMixin):
             topic["last_reply_time"] = self.extract(
                 self.rules["last_reply_time"], topic_item)
             topic["url"] = self.extract(self.rules["url"], topic_item)
-            topic["got_time"] = time.time()
+            now = time.time()
+            topic["got_time"] = now
+            topic["last_update_time"] = now
             topics.append(topic)
         return topics
 
-    def _filter_topics(self, topics, diff_urls):
-        """过滤重复帖子
+    @staticmethod
+    def _filter_topics(topics, diff_urls):
+        """过滤帖子,找出新增的和老的帖子
 
         @topics, list, 当前页所有帖子信息
         @diff_urls, list, 新增的帖子URL
         """
-        return [
-            topic for topic in topics
-            if topic["url"] in diff_urls
-        ]
+        new_topics, old_topics = [], []
+        for topic in topics:
+            if topic["url"] in diff_urls:
+                new_topics.append(topic)
+            else:
+                old_topics.append(topic)
+        return new_topics, old_topics
 
     def _diff_urls(self, topic_urls):
         """过滤重复帖子URL
@@ -253,6 +261,24 @@ class DoubanSpider(DBMixin):
         # 找出新增的URL
         diff_urls = list(set(topic_urls) - set(cache_urls))
         return diff_urls
+
+    def _update_old_topics(self, old_topics):
+        """更新老帖子的信息,标题,回应时间和回复数量
+
+        @old_topics, list, 老帖子列表
+        """
+        for topic in old_topics:
+            new_info = {
+                "title": topic["title"],
+                "reply": topic["reply"],
+                "last_reply_time": topic["last_reply_time"],
+                "last_update_time": time.time()
+            }
+            self.result_page.update(
+                {"url": topic["url"]},
+                {"$set": new_info}
+            )
+            logger.info("%s updated ...", topic["url"])
 
     def _init_topic_tasks(self, topic_urls):
         """初始化帖子任务
@@ -275,7 +301,7 @@ class DoubanSpider(DBMixin):
 
         @url, str, 每个帖子的URL
         """
-        logger.info("processing topic: %s" % url)
+        logger.info("processing topic: %s", url)
         html = self.fetch(url)
         # 获取每一页的信息
         topic = self._get_detail_info(html, url)
