@@ -56,7 +56,9 @@ RULES = {
     "last_reply_time": "td[@class='time']/text()",
     "url": "td[@class='title']/a/@href",
     # 帖子详情
-    "detail_title": "//td[@class='tablecc']/text()|//div[@id='content']/h1/text()",
+    "detail_title_sm": "//td[@class='tablecc']/text()",
+    # 完整标题
+    "detail_title_lg": "//div[@id='content']/h1/text()",
     "create_time": "//span[@class='color-green']/text()",
     "detail_author": "//span[@class='from']/a/text()",
     "content": "//div[@class='topic-content']/p/text()",
@@ -67,3 +69,6 @@ POOL_SIZE = 20
 
 # 监控周期(秒),默认10分钟
 WATCH_INTERVAL = 10 * 60
+
+# 重载代理周期
+PROXY_INTERVAL = 30 * 60

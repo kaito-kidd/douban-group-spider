@@ -20,7 +20,7 @@ from dbmixin import DBMixin
 
 from config import (
     GROUP_LIST, GROUP_SUFFIX, USER_AGENT,
-    POOL_SIZE, RULES, MAX_PAGE, WATCH_INTERVAL
+    POOL_SIZE, RULES, MAX_PAGE, WATCH_INTERVAL, PROXY_INTERVAL
 )
 from utils import Timer, ProxyManager
 
@@ -72,7 +72,6 @@ class DoubanSpider(DBMixin):
         self.result_page = self.db.result_page
         self.result_topic = self.db.result_topic
         self.cache = self.db.cache_page
-        self.session = requests.Session()
 
         self.group_list = GROUP_LIST
         self.rules = RULES
@@ -105,7 +104,6 @@ class DoubanSpider(DBMixin):
                 if self.proxy_manager is not None:
                     kwargs["proxies"] = {
                         "http": self.proxy_manager.get_proxy()}
-                # resp = self.session.get(url, **kwargs)
                 resp = requests.get(url, **kwargs)
                 if resp.status_code != 200:
                     raise HTTPError(resp.status_code, url)
@@ -147,7 +145,7 @@ class DoubanSpider(DBMixin):
         all_greenlet.append(gevent.spawn(self._page_loop))
         all_greenlet.append(gevent.spawn(self._topic_loop))
         # 重载代理,10分
-        proxy_timer = Timer(10 * 60, 10 * 60)
+        proxy_timer = Timer(PROXY_INTERVAL, PROXY_INTERVAL)
         all_greenlet.append(
             gevent.spawn(proxy_timer.run(self.reload_proxies)))
         gevent.joinall(all_greenlet)
@@ -324,8 +322,8 @@ class DoubanSpider(DBMixin):
             logger.warn("%s 403.html", url)
             return None
         topic = {}
-        title = self.extract(
-            self.rules["detail_title"], html)
+        title = self.extract(self.rules["detail_title_sm"], html) \
+            or self.extract(self.rules["detail_title_lg"], html)
         topic["title"] = title.strip()
         topic["create_time"] = self.extract(
             self.rules["create_time"], html)
