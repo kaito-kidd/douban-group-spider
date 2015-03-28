@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+        <title>豆瓣租房搜索</title>
+    </head>
+    <body>
+        <h1>豆瓣租房搜索</h1>
+        <form action="/" method="POST">
+            请输入关键词：<input type="text", name="keyword" value="{{ keyword }}" />
+            <input type="submit" value="搜索" /><br/>
+        </form>
+        <div style="padding-left:10px;padding-top:20px;">
+            <table border="1">
+                <tr>
+                    <th width="50%">标题</th>
+                    <th width="20%">发表时间</th>
+                </tr>
+                {% for item in topics %}
+                <tr>
+                    <td><a href="{{ item["url"]}} " target="_blank">{{ item["title"] }}</a></td>
+                    <td>{{ item["create_time"] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </body>
+</html>
