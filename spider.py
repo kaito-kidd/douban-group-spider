@@ -213,7 +213,7 @@ class DoubanSpider(DBMixin):
     def _get_page_info(self, topic_list):
         """获取每一页的帖子基本信息
 
-        @topic_list, list, 当前月的帖子项
+        @topic_list, list, 当前页的帖子项
         """
         topics = []
         # 第一行是标题头,舍掉
@@ -324,6 +324,8 @@ class DoubanSpider(DBMixin):
         topic = {}
         title = self.extract(self.rules["detail_title_sm"], html) \
             or self.extract(self.rules["detail_title_lg"], html)
+        if title is None:
+            return None
         topic["title"] = title.strip()
         topic["create_time"] = self.extract(
             self.rules["create_time"], html)
