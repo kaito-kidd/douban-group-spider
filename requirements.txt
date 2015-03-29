@@ -1,0 +1,5 @@
+Flask==0.10.1
+gevent==1.0.1
+lxml==3.4.2
+pymongo==2.8
+requests==2.6.0
