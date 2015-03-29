@@ -30,7 +30,7 @@ def index():
             .sort([("last_update_time", -1)]).limit(300)
     else:
         topics = topic_collection.find(where) \
-            .sort([("order_by", -1)]).limit(300)
+            .sort([("create_time", -1)]).limit(300)
     return render_template(
         "index.html",
         topics=topics,
