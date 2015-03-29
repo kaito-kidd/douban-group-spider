@@ -11,8 +11,8 @@ USER_AGENT = (
 )
 
 # mongo config
-# DB_URI = "mongodb://127.0.0.1:27017"
-DB_URI = "mongodb://192.168.6.7:27017"
+DB_URI = "mongodb://127.0.0.1:27017"
+# DB_URI = "mongodb://192.168.6.7:27017"
 DB_NAME = "douban_group"
 
 # 豆瓣小组URL
