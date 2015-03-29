@@ -23,8 +23,8 @@
 - 建议使用`virtualenv`环境<br/>
     `pip install -r requirements.txt`
 - 启动爬虫<br/>
-    `nohup python spider >> douban_spider.log &`
-- 启动后台服务<br/>
+    `nohup python spider.py >> douban_spider.log &`
+- 启动web服务<br/>
     `nohup python app.py >> app.log &`
 - 查看页面<br/>
     `http://localhost:5000`
