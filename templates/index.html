@@ -7,18 +7,27 @@
         <h1>豆瓣租房搜索</h1>
         <form action="/" method="POST">
             请输入关键词：<input type="text", name="keyword" value="{{ keyword }}" />
+            排序：
+            <select name="is_order_update_time">
+                <option value="0" {% if is_order_update_time == 0 %} selected {% endif %}>发帖时间倒序</option>
+                <option value="1" {% if is_order_update_time == 1 %} selected {% endif %}>更新时间倒序</option>
+            </select>
             <input type="submit" value="搜索" /><br/>
         </form>
         <div style="padding-left:10px;padding-top:20px;">
             <table border="1">
                 <tr>
                     <th width="50%">标题</th>
-                    <th width="20%">发表时间</th>
+                    <th width="20%">发表/更新时间</th>
                 </tr>
                 {% for item in topics %}
                 <tr>
                     <td><a href="{{ item["url"]}} " target="_blank">{{ item["title"] }}</a></td>
+                    {% if item["create_time"] %}
                     <td>{{ item["create_time"] }}</td>
+                    {% else %}
+                    <td>{{ item["last_reply_time"] }}</td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </table>
