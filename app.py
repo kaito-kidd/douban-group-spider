@@ -13,6 +13,7 @@ db = DBMixin().db
 topic_collection = db.result_topic
 page_collection = db.result_page
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     """index
@@ -38,4 +39,4 @@ def index():
         keyword=keyword)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0")
