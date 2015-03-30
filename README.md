@@ -8,9 +8,9 @@
 - `requests`
 - `lxml`
 - `Flask`
+-  `boostrap`
 <br/>
 具体版本参见`requirements.txt`<br/>
-前端使用了`boostrap`模板。
 
 # 特别说明
 - 由于豆瓣有防抓机制，故此爬虫使用了代理爬取，防止被封IP。<br/>
