@@ -17,6 +17,7 @@
 - 可从网上收集代理IP，放在项目路径下`proxy_list.txt`。
 - 每个一行，程序会自动加载，且可以自动定时加载新代理。<br/>
 - 或者参考我的[代理采集器](https://github.com/kaito-kidd/proxy-fetcher)，自动采集代理。
+- 如果程序运行发现总是出现超时或者403，请更换`proxy_list.txt`下的代理。
 
 # 使用
 - 安装`MongoDB`，具体参考安装文档。
