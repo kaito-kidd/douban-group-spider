@@ -77,14 +77,14 @@ class Page(object):
         @max_page, int, 最大页数
         '''
         begin_page, end_page = 1, 1
-        # 总页码小于5
-        if max_page < 10:
+        # 总页码小于15
+        if max_page < 15:
             # 开始:1
             begin_page = 1
             # 结束:总页码
             end_page = max_page
         else:
-            # 保证显示5个
+            # 保证显示15个
             begin_page = cpage - 7
             end_page = cpage + 7
             if begin_page < 1:
