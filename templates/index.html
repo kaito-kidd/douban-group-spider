@@ -13,45 +13,119 @@
 
         <div class="container-fluid">
             <h1>豆瓣租房搜索</h1>
-            <form action="/" method="POST" class="form-inline">
-                <div class="form-group">
-                    <label for="keyword">请输入关键词：</label>
-                    <input type="text" class="form-control" id="keyword"
-                        name="keyword" value="{{ keyword }}" placeholder="请输入搜索关键字" />
+            <div class="row" style="margin-left:3px;">
+                <div clss="col-md-12">
+                    <form action="/" method="POST" class="form-inline">
+                        <div class="form-group">
+                            <label for="keyword">请输入关键词：</label>
+                            <input type="text" class="form-control" id="keyword"
+                                name="keyword" value="{{ keyword }}" placeholder="请输入搜索关键字" />
+                        </div>
+                        <div class="form-group">
+                            <label for="is_order_update_time">
+                                排序：
+                            </label>
+                            <select name="is_order_update_time" class="form-control">
+                                <option value="0" {% if is_order_update_time == 0 %} selected {% endif %}>发帖时间倒序</option>
+                                <option value="1" {% if is_order_update_time == 1 %} selected {% endif %}>更新时间倒序</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">搜索</button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="is_order_update_time">
-                        排序：
-                    </label>
-                    <select name="is_order_update_time" class="form-control">
-                        <option value="0" {% if is_order_update_time == 0 %} selected {% endif %}>发帖时间倒序</option>
-                        <option value="1" {% if is_order_update_time == 1 %} selected {% endif %}>更新时间倒序</option>
-                    </select>
+            </div>
+            <div class="row" style="margin-left:3px;margin-right:3px;">
+                <div clss="col-md-12">
+                    <div class="table-responsive" style="padding-top:20px;">
+                        <table class="table table-bordered table-hover table-condensed table-striped">
+                            <thead>
+                                <tr>
+                                    <th width="50%" class="info">标题</th>
+                                    <th width="20%" class="info">发表/更新时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in topics %}
+                                <tr>
+                                    <td><a href="{{ item["url"]}} " target="_blank">{{ item["title"] }}</a></td>
+                                    {% if item["create_time"] %}
+                                    <td>{{ item["create_time"] }}</td>
+                                    {% else %}
+                                    <td>{{ item["last_reply_time"] }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">搜索</button>
-            </form>
-            <div class="table-responsive" style="padding-top:20px;">
-                <table class="table table-bordered table-hover table-condensed table-striped">
-                    <thead>
-                        <tr>
-                            <th width="50%" class="info">标题</th>
-                            <th width="20%" class="info">发表/更新时间</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in topics %}
-                        <tr>
-                            <td><a href="{{ item["url"]}} " target="_blank">{{ item["title"] }}</a></td>
-                            {% if item["create_time"] %}
-                            <td>{{ item["create_time"] }}</td>
+            </div>
+            <div class="row">
+                <div class="col-md-2" style="margin-top:30px;">
+                    共 <span style="color:red;">{{ count }}</span> 条记录
+                    共 <span style="color:red;">{{ page.max_page }}</span> 页
+                </div>
+                <div class="col-md-10">
+                    <nav>
+                      <ul class="pagination">
+                        {% if page.cpage == 1 %}
+                           <li class="disabled">
+                              <span aria-hidden="true">第一页</span>
+                           </li>
+                            <li class="disabled">
+                                <span aria-hidden="true">&laquo;</span>
+                            </li>
+                        {% else %}
+                           <li>
+                                <a href="javascript:gotoPage(1)">
+                                    <span aria-hidden="true">第一页</span>
+                                </a>
+                           </li>
+                            <li>
+                                <a href="javascript:gotoPage({{ page.cpage - 1 }})" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for p in range(page.begin_page, page.end_page + 1) %}
+                            {% if page.cpage == p %}
+                                <li class="active"><span aria-hidden="true">{{ p }}</span></li>
                             {% else %}
-                            <td>{{ item["last_reply_time"] }}</td>
+                                <li><a href="javascript:gotoPage({{p}})">{{ p }}</a></li>
                             {% endif %}
-                        </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
+
+                        {% if page.cpage == page.max_page %}
+                             <li class="disabled">
+                                <span aria-hidden="true">&raquo;</span>
+                            </li>
+                            <li class="disabled">
+                                <span aria-hidden="true">最后一页</span>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a href="javascript:gotoPage({{ page.cpage + 1 }})" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="javascript:gotoPage({{page.max_page}})">
+                                    <span aria-hidden="true">最后一页</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                      </ul>
+                    </nav>
+                </div>
             </div>
         </div>
+        <script type="text/javascript">
+            function gotoPage(cpage){
+                $myform = $("form");
+                $myform.append("<input type='hidden' name='cpage' value=" + cpage+ ">")
+                $myform.submit();
+            }
+        </script>
     </body>
 </html>
