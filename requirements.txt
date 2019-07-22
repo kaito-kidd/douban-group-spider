@@ -1,5 +1,5 @@
-Flask==0.10.1
+Flask==1.0.2
 gevent==1.1.2
 lxml==3.4.2
 pymongo==2.8
-requests==2.6.0
+requests==2.22.0
