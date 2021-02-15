@@ -18,10 +18,7 @@ from gevent.queue import Queue
 from lxml import etree
 from dbmixin import DBMixin
 
-from config import (
-    GROUP_LIST, GROUP_SUFFIX, USER_AGENT,
-    POOL_SIZE, RULES, MAX_PAGE, WATCH_INTERVAL, PROXY_INTERVAL
-)
+from config import *
 from utils import Timer, ProxyManager
 
 
@@ -32,7 +29,7 @@ def get_logger(name):
     default_logger.setLevel(logging.DEBUG)
     stream = logging.StreamHandler()
     stream.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s")
+    formatter = logging.Formatter("%(asctime)s : %(levelname)s : %(filename)s[%(lineno)s] : %(message)s")
     stream.setFormatter(formatter)
     default_logger.addHandler(stream)
     return default_logger
@@ -73,7 +70,6 @@ class DoubanSpider(DBMixin):
         self.result_topic = self.db.result_topic
         self.cache = self.db.cache_page
 
-        self.group_list = GROUP_LIST
         self.rules = RULES
         self.interval = WATCH_INTERVAL
 
@@ -82,20 +78,40 @@ class DoubanSpider(DBMixin):
         self.topic_queue = Queue()
 
         self.proxy_manager = proxy_manager
+        self.group_list = self.get_group_list()
+        logger.info("GROUP_LIST length: {}".format(len(self.group_list)))
 
-    def fetch(self, url, timeout=10, retury_num=10):
+    def get_group_list(self, extra={"params": {"cat": ENTRY_CATALOG, "q": ENTRY_QUERY, "sort": "relevance"}}):
+        if ENABLE_ENTRY:
+            group_list = []
+            for page in range(ENTRY_MAX_PAGE):
+                extra["params"]["start"] = page * 20
+                resp = self.fetch(ENTRY, extra=extra)
+                body = etree.HTML(resp)
+                res = body.xpath(self.rules["group_list"])
+                group_list.extend(res)
+                time.sleep(0.5)
+            print group_list
+            return group_list
+        else:
+            return GROUP_LIST
+
+    def fetch(self, url, timeout=10, retury_num=10, extra=None):
         """发起HTTP请求
 
         @url, str, URL
         @timeout, int, 超时时间
         @retury_num, int, 重试次数
         """
+        if extra is None:
+            extra = {}
         kwargs = {
             "headers": {
                 "User-Agent": USER_AGENT,
                 "Referer": "http://www.douban.com/"
             },
         }
+        kwargs.update(extra)
         kwargs["timeout"] = timeout
         resp = None
         for i in range(retury_num):
