@@ -1,4 +1,4 @@
-Flask==1.0.2
+Flask==2.3.2
 gevent==1.1.2
 lxml==4.6.2
 pymongo==2.8
